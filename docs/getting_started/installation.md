@@ -44,7 +44,7 @@ cd SWE-smith
 cp .env.example .env
 ```
 
-3. Fill in the required values in `.env`:
+3. Fill in the values in `.env`:
 
 ```bash
 # Your user/group IDs (run `id` to check)
@@ -62,8 +62,11 @@ HF_TOKEN=
 # Check via: stat -c '%g' /var/run/docker.sock
 DOCKER_GID=999
 
-# Path to your SSH keys (used for git operations)
-SSH_KEY_DIR=./keys
+# Path to SSH private key for git operations (clone, push, etc.)
+# Required for SSH git operations inside the Docker dev env — the key file
+# is mounted into the container. On a bare host this is optional, as git
+# uses default SSH behavior (agent, ~/.ssh/config).
+GITHUB_USER_SSH_KEY=~/.ssh/id_ed25519
 ```
 
 4. Build and start the container:

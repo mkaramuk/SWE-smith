@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     docker.io \
     build-essential \
+    openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 ARG UID=1000
@@ -17,6 +18,8 @@ RUN groupadd -g $GID sweuser && \
     useradd -u $UID -g $GID -m -s /bin/bash sweuser
 
 USER sweuser
+
+RUN mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
 
 RUN pip install pipx
 ENV PATH="/home/sweuser/.local/bin:$PATH"

@@ -9,7 +9,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/home/sweuser/swesmith
-      - ${SSH_KEY_DIR:-./keys}:/home/sweuser/.ssh:ro
+      - ${GITHUB_USER_SSH_KEY:-/dev/null}:/home/sweuser/.ssh/github_key:ro
     group_add:
       - ${DOCKER_GID:-999}
     env_file:
