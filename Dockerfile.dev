@@ -1,0 +1,29 @@
+FROM continuumio/miniconda3
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    wget \
+    docker.io \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG UID=1000
+ARG GID=1000
+
+RUN groupadd -g $GID sweuser && \
+    useradd -u $UID -g $GID -m -s /bin/bash sweuser
+
+USER sweuser
+
+RUN pip install pipx
+ENV PATH="/home/sweuser/.local/bin:$PATH"
+RUN pipx install uv
+
+WORKDIR /home/sweuser/swesmith
+
+COPY --chmod=755 entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["bash"]

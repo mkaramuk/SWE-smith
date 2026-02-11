@@ -1,0 +1,18 @@
+services:
+  swesmith:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/home/sweuser/swesmith
+      - ${SSH_KEY_DIR:-./keys}:/home/sweuser/.ssh:ro
+    group_add:
+      - ${DOCKER_GID:-999}
+    env_file:
+      - .env
+    stdin_open: true
+    tty: true

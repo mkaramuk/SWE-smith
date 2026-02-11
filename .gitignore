@@ -190,3 +190,6 @@ pyrightconfig.json
 
 uv.lock
 .vscode/
+
+keys
+.container-cache
