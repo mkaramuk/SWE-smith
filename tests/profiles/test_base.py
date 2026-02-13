@@ -10,7 +10,7 @@ from swesmith.constants import KEY_PATCH
 from swesmith.constants import ORG_NAME_GH
 from swesmith.profiles import registry, RepoProfile
 from swesmith.profiles.utils import INSTALL_CMAKE, INSTALL_BAZEL
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 @pytest.fixture(autouse=True)
@@ -50,53 +50,49 @@ def test_image_name():
 def test_repo_profile_clone():
     """Test the RepoProfile.clone method, adapted from the original clone_repo test."""
     repo_profile = registry.get("mewwts__addict.75284f95")
+    mirror_ssh = f"git@github.com:{repo_profile.mirror_name}.git"
 
-    # Test with default dest (should use repo_name)
-    # Patch GITHUB_TOKEN to None to ensure SSH URL format is used
+    # Test public repo clone (HTTPS read URL, SSH push URL)
     expected_dest = repo_profile.repo_name
-    expected_cmd = f"git clone git@github.com:{repo_profile.mirror_name}.git {repo_profile.repo_name}"
-
     with (
-        patch.dict(os.environ, {}, clear=False),
-        patch("os.getenv", return_value=None),
+        patch.object(repo_profile, "_is_repo_private", return_value=False),
         patch("os.path.exists", return_value=False) as mock_exists,
         patch("subprocess.run") as mock_run,
     ):
         result, cloned = repo_profile.clone()
         mock_exists.assert_called_once_with(expected_dest)
-        mock_run.assert_called_once_with(
-            expected_cmd,
-            check=True,
-            shell=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        assert mock_run.call_count == 2
+        clone_call, seturl_call = mock_run.call_args_list
+        assert clone_call.args[0] == f"git clone https://github.com/{repo_profile.mirror_name} {expected_dest}"
+        assert seturl_call.args[0] == f"git -C {expected_dest} remote set-url --push origin {mirror_ssh}"
         assert result == expected_dest
-        assert cloned == True
+        assert cloned is True
 
-    # Test with custom dest specified
-    custom_dest = "some_dir"
-    expected_cmd_with_dest = (
-        f"git clone git@github.com:{repo_profile.mirror_name}.git {custom_dest}"
-    )
-
+    # Test private repo clone (SSH for both read and push)
     with (
-        patch.dict(os.environ, {}, clear=False),
-        patch("os.getenv", return_value=None),
-        patch("os.path.exists", return_value=False) as mock_exists,
+        patch.object(repo_profile, "_is_repo_private", return_value=True),
+        patch("os.path.exists", return_value=False),
+        patch("subprocess.run") as mock_run,
+    ):
+        result, cloned = repo_profile.clone()
+        assert mock_run.call_count == 2
+        clone_call, seturl_call = mock_run.call_args_list
+        assert clone_call.args[0] == f"git clone {mirror_ssh} {expected_dest}"
+        assert seturl_call.args[0] == f"git -C {expected_dest} remote set-url --push origin {mirror_ssh}"
+        assert cloned is True
+
+    # Test with custom dest
+    custom_dest = "some_dir"
+    with (
+        patch.object(repo_profile, "_is_repo_private", return_value=False),
+        patch("os.path.exists", return_value=False),
         patch("subprocess.run") as mock_run,
     ):
         result, cloned = repo_profile.clone(custom_dest)
-        mock_exists.assert_called_once_with(custom_dest)
-        mock_run.assert_called_once_with(
-            expected_cmd_with_dest,
-            check=True,
-            shell=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        clone_call = mock_run.call_args_list[0]
+        assert custom_dest in clone_call.args[0]
         assert result == custom_dest
-        assert cloned == True
+        assert cloned is True
 
     # Test when repo already exists
     with (
@@ -107,7 +103,7 @@ def test_repo_profile_clone():
         mock_exists.assert_called_once_with(custom_dest)
         mock_run.assert_not_called()
         assert result == custom_dest
-        assert cloned == False
+        assert cloned is False
 
 
 def test_python_log_parser():
@@ -312,7 +308,7 @@ def test_create_mirror():
         mock_repos.create_in_org.assert_not_called()
         mock_run.assert_not_called()
 
-    # Test creating new mirror
+    # Test creating new mirror (private source repo)
     with (
         patch.object(repo_profile, "_mirror_exists", return_value=False),
         patch("os.listdir", return_value=[repo_profile.repo_name]),
@@ -320,10 +316,16 @@ def test_create_mirror():
         patch.object(repo_profile.api, "repos") as mock_repos,
         patch("subprocess.run") as mock_run,
     ):
+        mock_repos.get.return_value = MagicMock(private=True)
         repo_profile.create_mirror()
 
-        # Should create mirror and run git commands
-        mock_repos.create_in_org.assert_called_once()
+        # Should query source repo visibility and create mirror with matching visibility
+        mock_repos.get.assert_called_once_with(
+            repo_profile.owner, repo_profile.repo
+        )
+        mock_repos.create_in_org.assert_called_once_with(
+            repo_profile.org_gh, repo_profile.repo_name, private=True
+        )
         assert mock_run.call_count == 3  # Three git commands
 
 
