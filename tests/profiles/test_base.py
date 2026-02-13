@@ -63,8 +63,14 @@ def test_repo_profile_clone():
         mock_exists.assert_called_once_with(expected_dest)
         assert mock_run.call_count == 2
         clone_call, seturl_call = mock_run.call_args_list
-        assert clone_call.args[0] == f"git clone https://github.com/{repo_profile.mirror_name} {expected_dest}"
-        assert seturl_call.args[0] == f"git -C {expected_dest} remote set-url --push origin {mirror_ssh}"
+        assert (
+            clone_call.args[0]
+            == f"git clone https://github.com/{repo_profile.mirror_name} {expected_dest}"
+        )
+        assert (
+            seturl_call.args[0]
+            == f"git -C {expected_dest} remote set-url --push origin {mirror_ssh}"
+        )
         assert result == expected_dest
         assert cloned is True
 
@@ -78,7 +84,10 @@ def test_repo_profile_clone():
         assert mock_run.call_count == 2
         clone_call, seturl_call = mock_run.call_args_list
         assert clone_call.args[0] == f"git clone {mirror_ssh} {expected_dest}"
-        assert seturl_call.args[0] == f"git -C {expected_dest} remote set-url --push origin {mirror_ssh}"
+        assert (
+            seturl_call.args[0]
+            == f"git -C {expected_dest} remote set-url --push origin {mirror_ssh}"
+        )
         assert cloned is True
 
     # Test with custom dest
@@ -320,9 +329,7 @@ def test_create_mirror():
         repo_profile.create_mirror()
 
         # Should query source repo visibility and create mirror with matching visibility
-        mock_repos.get.assert_called_once_with(
-            repo_profile.owner, repo_profile.repo
-        )
+        mock_repos.get.assert_called_once_with(repo_profile.owner, repo_profile.repo)
         mock_repos.create_in_org.assert_called_once_with(
             repo_profile.org_gh, repo_profile.repo_name, private=True
         )

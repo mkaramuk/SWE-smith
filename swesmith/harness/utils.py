@@ -38,13 +38,8 @@ from swesmith.profiles import registry
 from unidiff import PatchSet
 
 # man ssh_config(5)
-_DEFAULT_SSH_KEYS = [
-    "id_rsa"
-    "id_ecdsa"
-    "id_ecdsa_sk"
-    "id_ed25519"
-    "id_ed25519_sk"
-]
+_DEFAULT_SSH_KEYS = ["id_rsaid_ecdsaid_ecdsa_skid_ed25519id_ed25519_sk"]
+
 
 def _find_ssh_key() -> Path | None:
     """Find an SSH private key: explicit env var first, then default paths."""
@@ -184,19 +179,28 @@ def run_patch_in_container(
                     "Repo is private but no SSH key found. "
                     "Set GITHUB_USER_SSH_KEY or add a key to ~/.ssh/"
                 )
-            
+
             # Prevent race condition
             with _ssh_copy_lock:
                 copy_to_container(container, key_file, Path("/github_key"))
             container.exec_run("chmod 600 /github_key", user=DOCKER_USER)
-            ssh_env = {"GIT_SSH_COMMAND": "ssh -i /github_key -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes"}
+            ssh_env = {
+                "GIT_SSH_COMMAND": "ssh -i /github_key -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes"
+            }
 
         # If provided, checkout commit in container
         if commit is not None:
             logger.info(f"Checking out commit {commit}")
-            fetch_val = container.exec_run("git fetch", workdir=DOCKER_WORKDIR, user=DOCKER_USER, environment=ssh_env)
+            fetch_val = container.exec_run(
+                "git fetch",
+                workdir=DOCKER_WORKDIR,
+                user=DOCKER_USER,
+                environment=ssh_env,
+            )
             if fetch_val.exit_code != 0:
-                logger.info(f"GIT FETCH FAILED (exit={fetch_val.exit_code}): {fetch_val.output.decode(UTF8)}")
+                logger.info(
+                    f"GIT FETCH FAILED (exit={fetch_val.exit_code}): {fetch_val.output.decode(UTF8)}"
+                )
             val = container.exec_run(
                 f"git checkout {commit}", workdir=DOCKER_WORKDIR, user=DOCKER_USER
             )

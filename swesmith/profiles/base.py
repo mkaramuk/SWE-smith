@@ -145,9 +145,7 @@ class RepoProfile(ABC, metaclass=SingletonMeta):
         """Bake GIT_SSH_COMMAND into os.environ if GITHUB_USER_SSH_KEY is set."""
         key_path = os.getenv("GITHUB_USER_SSH_KEY")
         if key_path and "GIT_SSH_COMMAND" not in os.environ:
-            os.environ["GIT_SSH_COMMAND"] = (
-                f"ssh -i {key_path} -o IdentitiesOnly=yes"
-            )
+            os.environ["GIT_SSH_COMMAND"] = f"ssh -i {key_path} -o IdentitiesOnly=yes"
 
     @property
     def mirror_url(self) -> str:
@@ -267,7 +265,7 @@ class RepoProfile(ABC, metaclass=SingletonMeta):
 
         # Inject GIT_SSH_COMMAND variable to the dockerfile. This ssh usage
         # accepts the unknown host key by default and save it to ~/.ssh/.known_hosts
-        # which removes the user interaction requirement. 
+        # which removes the user interaction requirement.
         content = re.sub(
             r"^(FROM\s+.+)$",
             r'\1\nENV GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new"',
