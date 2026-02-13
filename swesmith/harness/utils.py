@@ -38,8 +38,7 @@ from swesmith.profiles import registry
 from unidiff import PatchSet
 
 # man ssh_config(5)
-_DEFAULT_SSH_KEYS = ["id_rsaid_ecdsaid_ecdsa_skid_ed25519id_ed25519_sk"]
-
+_DEFAULT_SSH_KEYS = ["id_rsa", "id_ecdsa", "id_ecdsa_sk", "id_ed25519", "id_ed25519_sk"]
 
 def _find_ssh_key() -> Path | None:
     """Find an SSH private key: explicit env var first, then default paths."""
