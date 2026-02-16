@@ -28,8 +28,9 @@ def test_python_profile_build_image():
 
     mock_env_yml_content = "name: test_env\ndependencies:\n  - python=3.10"
 
+    m = mock_open(read_data=mock_env_yml_content)
     with (
-        patch("builtins.open", mock_open(read_data=mock_env_yml_content)),
+        patch("builtins.open", m),
         patch("swesmith.profiles.python.get_dockerfile_env", return_value="FROM test"),
         patch("pathlib.Path.mkdir"),
         patch("subprocess.run") as mock_run,
@@ -42,10 +43,11 @@ def test_python_profile_build_image():
         assert "docker build" in build_cmd
         assert profile.image_name in build_cmd
 
-        # Verify setup script content was written (check the open calls)
+        # Verify that the Dockerfile was written via open()
+        m.assert_called()
         written_content = ""
-        for call in mock_open(read_data=mock_env_yml_content)().write.call_args_list:
-            written_content += call.args[0]
+        for c in m().write.call_args_list:
+            written_content += c.args[0]
 
 
 def test_python_profile_log_parser():

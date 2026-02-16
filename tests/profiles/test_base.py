@@ -638,6 +638,91 @@ def my_function(x, y):
     assert any(getattr(e, "is_function", False) for e in entities)
 
 
+def test_is_repo_private_api_failure():
+    """Test _is_repo_private returns True when GitHub API is unreachable."""
+    repo_profile = registry.get("mewwts__addict.75284f95")
+    repo_profile._cache_repo_private = None
+
+    with patch("urllib.request.urlopen", side_effect=Exception("Connection error")):
+        assert repo_profile._is_repo_private() is True
+
+
+def test_configure_ssh_env_sets_git_ssh_command():
+    """Test _configure_ssh_env sets GIT_SSH_COMMAND when GITHUB_USER_SSH_KEY is set."""
+    saved = os.environ.pop("GIT_SSH_COMMAND", None)
+    try:
+        with patch.dict(os.environ, {"GITHUB_USER_SSH_KEY": "/path/to/key"}):
+            os.environ.pop("GIT_SSH_COMMAND", None)
+            RepoProfile._configure_ssh_env()
+            assert os.environ["GIT_SSH_COMMAND"] == "ssh -i /path/to/key -o IdentitiesOnly=yes"
+    finally:
+        if saved is not None:
+            os.environ["GIT_SSH_COMMAND"] = saved
+        else:
+            os.environ.pop("GIT_SSH_COMMAND", None)
+
+
+def test_configure_ssh_env_does_not_overwrite():
+    """Test _configure_ssh_env does not overwrite existing GIT_SSH_COMMAND."""
+    with patch.dict(
+        os.environ,
+        {"GITHUB_USER_SSH_KEY": "/path/to/key", "GIT_SSH_COMMAND": "existing"},
+    ):
+        RepoProfile._configure_ssh_env()
+        assert os.environ["GIT_SSH_COMMAND"] == "existing"
+
+
+def test_prepare_dockerfile():
+    """Test _prepare_dockerfile injects BuildKit syntax and SSH mounts."""
+    repo_profile = registry.get("mewwts__addict.75284f95")
+    input_dockerfile = "FROM python:3.10\nRUN pip install -e ."
+
+    result = repo_profile._prepare_dockerfile(input_dockerfile)
+
+    assert result.startswith("# syntax=docker/dockerfile:1")
+    assert 'ENV GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new"' in result
+    assert "RUN --mount=type=ssh,required=false pip install -e ." in result
+
+
+def test_prepare_dockerfile_idempotent_syntax():
+    """Test _prepare_dockerfile does not duplicate the syntax directive."""
+    repo_profile = registry.get("mewwts__addict.75284f95")
+    input_dockerfile = "# syntax=docker/dockerfile:1\nFROM python:3.10\nRUN pip install -e ."
+
+    result = repo_profile._prepare_dockerfile(input_dockerfile)
+
+    assert result.count("# syntax=docker/dockerfile") == 1
+
+
+def test_docker_ssh_arg_with_key_path():
+    """Test _docker_ssh_arg when GITHUB_USER_SSH_KEY is set."""
+    repo_profile = registry.get("mewwts__addict.75284f95")
+    with patch.dict(os.environ, {"GITHUB_USER_SSH_KEY": "/path/to/key"}):
+        assert repo_profile._docker_ssh_arg == "--ssh default=/path/to/key"
+
+
+def test_docker_ssh_arg_private_repo_no_key():
+    """Test _docker_ssh_arg when repo is private but no explicit key."""
+    repo_profile = registry.get("mewwts__addict.75284f95")
+    with (
+        patch.dict(os.environ, {}, clear=False),
+        patch.object(repo_profile, "_is_repo_private", return_value=True),
+    ):
+        os.environ.pop("GITHUB_USER_SSH_KEY", None)
+        assert repo_profile._docker_ssh_arg == "--ssh default"
+
+
+def test_docker_ssh_arg_public_repo():
+    """Test _docker_ssh_arg when repo is public and no key."""
+    repo_profile = registry.get("mewwts__addict.75284f95")
+    with (
+        patch.dict(os.environ, {}, clear=False),
+        patch.object(repo_profile, "_is_repo_private", return_value=False),
+    ):
+        os.environ.pop("GITHUB_USER_SSH_KEY", None)
+        assert repo_profile._docker_ssh_arg == ""
+
+
 def test_is_test_path_cases(tmp_path):
     """Test the _is_test_path method for various file and directory patterns and extensions."""
     # Use MockRepoProfile with a dummy directory
