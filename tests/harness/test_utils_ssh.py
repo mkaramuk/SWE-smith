@@ -76,9 +76,7 @@ class TestRunPatchInContainerSsh:
     def mock_env(self, tmp_path):
         """Set up the common mocks needed for run_patch_in_container."""
         mock_container = MagicMock()
-        mock_container.exec_run.return_value = MagicMock(
-            exit_code=0, output=b"ok"
-        )
+        mock_container.exec_run.return_value = MagicMock(exit_code=0, output=b"ok")
 
         mock_client = MagicMock()
         mock_client.containers.create.return_value = mock_container
@@ -108,10 +106,15 @@ class TestRunPatchInContainerSsh:
         with (
             patch("swesmith.harness.utils.docker") as mock_docker,
             patch("swesmith.harness.utils.registry") as mock_registry,
-            patch("swesmith.harness.utils.setup_logger", return_value=mock_env["logger"]),
+            patch(
+                "swesmith.harness.utils.setup_logger", return_value=mock_env["logger"]
+            ),
             patch("swesmith.harness.utils._find_ssh_key", return_value=ssh_key),
             patch("swesmith.harness.utils.copy_to_container") as mock_copy,
-            patch("swesmith.harness.utils.exec_run_with_timeout", return_value=("output", False, 1.0)),
+            patch(
+                "swesmith.harness.utils.exec_run_with_timeout",
+                return_value=("output", False, 1.0),
+            ),
             patch("swesmith.harness.utils.cleanup_container"),
         ):
             mock_docker.from_env.return_value = mock_env["client"]
@@ -141,7 +144,9 @@ class TestRunPatchInContainerSsh:
         with (
             patch("swesmith.harness.utils.docker") as mock_docker,
             patch("swesmith.harness.utils.registry") as mock_registry,
-            patch("swesmith.harness.utils.setup_logger", return_value=mock_env["logger"]),
+            patch(
+                "swesmith.harness.utils.setup_logger", return_value=mock_env["logger"]
+            ),
             patch("swesmith.harness.utils._find_ssh_key", return_value=None),
             patch("swesmith.harness.utils.cleanup_container"),
         ):
@@ -168,10 +173,15 @@ class TestRunPatchInContainerSsh:
         with (
             patch("swesmith.harness.utils.docker") as mock_docker,
             patch("swesmith.harness.utils.registry") as mock_registry,
-            patch("swesmith.harness.utils.setup_logger", return_value=mock_env["logger"]),
+            patch(
+                "swesmith.harness.utils.setup_logger", return_value=mock_env["logger"]
+            ),
             patch("swesmith.harness.utils._find_ssh_key") as mock_find_key,
             patch("swesmith.harness.utils.copy_to_container") as mock_copy,
-            patch("swesmith.harness.utils.exec_run_with_timeout", return_value=("output", False, 1.0)),
+            patch(
+                "swesmith.harness.utils.exec_run_with_timeout",
+                return_value=("output", False, 1.0),
+            ),
             patch("swesmith.harness.utils.cleanup_container"),
         ):
             mock_docker.from_env.return_value = mock_env["client"]
@@ -200,10 +210,15 @@ class TestRunPatchInContainerSsh:
         with (
             patch("swesmith.harness.utils.docker") as mock_docker,
             patch("swesmith.harness.utils.registry") as mock_registry,
-            patch("swesmith.harness.utils.setup_logger", return_value=mock_env["logger"]),
+            patch(
+                "swesmith.harness.utils.setup_logger", return_value=mock_env["logger"]
+            ),
             patch("swesmith.harness.utils._find_ssh_key", return_value=ssh_key),
             patch("swesmith.harness.utils.copy_to_container"),
-            patch("swesmith.harness.utils.exec_run_with_timeout", return_value=("output", False, 1.0)),
+            patch(
+                "swesmith.harness.utils.exec_run_with_timeout",
+                return_value=("output", False, 1.0),
+            ),
             patch("swesmith.harness.utils.cleanup_container"),
         ):
             mock_docker.from_env.return_value = mock_env["client"]
@@ -223,7 +238,8 @@ class TestRunPatchInContainerSsh:
             fetch_calls = [
                 c
                 for c in mock_env["container"].exec_run.call_args_list
-                if c.args and c.args[0] == "git fetch"
+                if c.args
+                and c.args[0] == "git fetch"
                 or (c.kwargs.get("cmd") == "git fetch")
             ]
 
@@ -233,7 +249,9 @@ class TestRunPatchInContainerSsh:
                     env = c.kwargs.get("environment", {})
                     if "GIT_SSH_COMMAND" in env:
                         found_ssh_env = True
-            assert found_ssh_env, "git fetch should have been called with ssh_env containing GIT_SSH_COMMAND"
+            assert found_ssh_env, (
+                "git fetch should have been called with ssh_env containing GIT_SSH_COMMAND"
+            )
 
     def test_git_fetch_failure_logged(self, mock_env, tmp_path):
         """When git fetch fails, the failure should be logged."""
@@ -251,8 +269,13 @@ class TestRunPatchInContainerSsh:
         with (
             patch("swesmith.harness.utils.docker") as mock_docker,
             patch("swesmith.harness.utils.registry") as mock_registry,
-            patch("swesmith.harness.utils.setup_logger", return_value=mock_env["logger"]),
-            patch("swesmith.harness.utils.exec_run_with_timeout", return_value=("output", False, 1.0)),
+            patch(
+                "swesmith.harness.utils.setup_logger", return_value=mock_env["logger"]
+            ),
+            patch(
+                "swesmith.harness.utils.exec_run_with_timeout",
+                return_value=("output", False, 1.0),
+            ),
             patch("swesmith.harness.utils.cleanup_container"),
         ):
             mock_docker.from_env.return_value = mock_env["client"]
@@ -269,7 +292,5 @@ class TestRunPatchInContainerSsh:
                 commit="abc123",
             )
 
-            logged_messages = [
-                str(c) for c in mock_env["logger"].info.call_args_list
-            ]
+            logged_messages = [str(c) for c in mock_env["logger"].info.call_args_list]
             assert any("GIT FETCH FAILED" in msg for msg in logged_messages)

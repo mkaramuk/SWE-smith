@@ -654,7 +654,10 @@ def test_configure_ssh_env_sets_git_ssh_command():
         with patch.dict(os.environ, {"GITHUB_USER_SSH_KEY": "/path/to/key"}):
             os.environ.pop("GIT_SSH_COMMAND", None)
             RepoProfile._configure_ssh_env()
-            assert os.environ["GIT_SSH_COMMAND"] == "ssh -i /path/to/key -o IdentitiesOnly=yes"
+            assert (
+                os.environ["GIT_SSH_COMMAND"]
+                == "ssh -i /path/to/key -o IdentitiesOnly=yes"
+            )
     finally:
         if saved is not None:
             os.environ["GIT_SSH_COMMAND"] = saved
@@ -687,7 +690,9 @@ def test_prepare_dockerfile():
 def test_prepare_dockerfile_idempotent_syntax():
     """Test _prepare_dockerfile does not duplicate the syntax directive."""
     repo_profile = registry.get("mewwts__addict.75284f95")
-    input_dockerfile = "# syntax=docker/dockerfile:1\nFROM python:3.10\nRUN pip install -e ."
+    input_dockerfile = (
+        "# syntax=docker/dockerfile:1\nFROM python:3.10\nRUN pip install -e ."
+    )
 
     result = repo_profile._prepare_dockerfile(input_dockerfile)
 
