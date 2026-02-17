@@ -1,13 +1,12 @@
 """Tests for SSH/private-repo support in swesmith.harness.utils."""
 
 import os
-import threading
 from pathlib import Path
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from swesmith.profiles.base import _find_ssh_key, _DEFAULT_SSH_KEYS
+from swesmith.profiles.base import _find_ssh_key
 
 
 class TestFindSshKey:
