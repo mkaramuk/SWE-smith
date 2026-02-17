@@ -703,8 +703,13 @@ def test_prepare_dockerfile_idempotent_syntax():
 def test_docker_ssh_arg_with_key_found():
     """Test _docker_ssh_arg when _find_ssh_key discovers a key."""
     repo_profile = registry.get("mewwts__addict.75284f95")
-    with patch("swesmith.profiles.base._find_ssh_key", return_value=Path("/home/user/.ssh/id_ed25519")):
-        assert repo_profile._docker_ssh_arg == "--ssh default=/home/user/.ssh/id_ed25519"
+    with patch(
+        "swesmith.profiles.base._find_ssh_key",
+        return_value=Path("/home/user/.ssh/id_ed25519"),
+    ):
+        assert (
+            repo_profile._docker_ssh_arg == "--ssh default=/home/user/.ssh/id_ed25519"
+        )
 
 
 def test_docker_ssh_arg_private_repo_no_key():
