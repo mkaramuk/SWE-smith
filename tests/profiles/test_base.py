@@ -1,4 +1,5 @@
 import subprocess
+import urllib.error
 import pytest
 import os
 import shutil
@@ -639,13 +640,35 @@ def my_function(x, y):
     assert any(getattr(e, "is_function", False) for e in entities)
 
 
-def test_is_repo_private_api_failure():
-    """Test _is_repo_private returns True when GitHub API is unreachable."""
+def test_is_repo_private_404_assumes_private():
+    """Test _is_repo_private returns True when GitHub API returns 404."""
     repo_profile = registry.get("mewwts__addict.75284f95")
     repo_profile._cache_repo_private = None
 
-    with patch("urllib.request.urlopen", side_effect=Exception("Connection error")):
+    error = urllib.error.HTTPError("url", 404, "Not Found", {}, None)
+    with patch("urllib.request.urlopen", side_effect=error):
         assert repo_profile._is_repo_private() is True
+
+
+def test_is_repo_private_non_404_raises():
+    """Test _is_repo_private raises on non-404 HTTP errors (e.g. rate limit)."""
+    repo_profile = registry.get("mewwts__addict.75284f95")
+    repo_profile._cache_repo_private = None
+
+    error = urllib.error.HTTPError("url", 403, "Forbidden", {}, None)
+    with patch("urllib.request.urlopen", side_effect=error):
+        with pytest.raises(urllib.error.HTTPError):
+            repo_profile._is_repo_private()
+
+
+def test_is_repo_private_network_error_raises():
+    """Test _is_repo_private raises on network errors."""
+    repo_profile = registry.get("mewwts__addict.75284f95")
+    repo_profile._cache_repo_private = None
+
+    with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("Connection error")):
+        with pytest.raises(urllib.error.URLError):
+            repo_profile._is_repo_private()
 
 
 def test_configure_ssh_env_sets_git_ssh_command():

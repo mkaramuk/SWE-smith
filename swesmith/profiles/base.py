@@ -7,11 +7,13 @@ installation and testing configurations for different repositories.
 
 import docker
 import json
+import logging
 import os
 import platform
 import re
 import shutil
 import subprocess
+import urllib.error
 import urllib.request
 
 from abc import ABC, abstractmethod, ABCMeta
@@ -44,6 +46,8 @@ from unidiff import PatchSet
 
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 _DEFAULT_SSH_KEYS = ["id_rsa", "id_ecdsa", "id_ecdsa_sk", "id_ed25519", "id_ed25519_sk"]
 
@@ -153,8 +157,12 @@ class RepoProfile(ABC, metaclass=SingletonMeta):
             with urllib.request.urlopen(req) as resp:
                 data = json.loads(resp.read())
                 self._cache_repo_private = data.get("private", False)
-        except Exception:
-            self._cache_repo_private = True
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                logger.warning("Repo '%s/%s' returned 404 — assuming private", self.owner, self.repo)
+                self._cache_repo_private = True
+            else:
+                raise
         return self._cache_repo_private
 
     @staticmethod
