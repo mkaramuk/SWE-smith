@@ -3,6 +3,7 @@ import pytest
 import os
 import shutil
 from dataclasses import dataclass
+from pathlib import Path
 
 from swebench.harness.constants import FAIL_TO_PASS, KEY_INSTANCE_ID
 from swesmith.bug_gen.mirror.generate import INSTANCE_REF
@@ -699,32 +700,30 @@ def test_prepare_dockerfile_idempotent_syntax():
     assert result.count("# syntax=docker/dockerfile") == 1
 
 
-def test_docker_ssh_arg_with_key_path():
-    """Test _docker_ssh_arg when GITHUB_USER_SSH_KEY is set."""
+def test_docker_ssh_arg_with_key_found():
+    """Test _docker_ssh_arg when _find_ssh_key discovers a key."""
     repo_profile = registry.get("mewwts__addict.75284f95")
-    with patch.dict(os.environ, {"GITHUB_USER_SSH_KEY": "/path/to/key"}):
-        assert repo_profile._docker_ssh_arg == "--ssh default=/path/to/key"
+    with patch("swesmith.profiles.base._find_ssh_key", return_value=Path("/home/user/.ssh/id_ed25519")):
+        assert repo_profile._docker_ssh_arg == "--ssh default=/home/user/.ssh/id_ed25519"
 
 
 def test_docker_ssh_arg_private_repo_no_key():
-    """Test _docker_ssh_arg when repo is private but no explicit key."""
+    """Test _docker_ssh_arg when repo is private but no key found anywhere."""
     repo_profile = registry.get("mewwts__addict.75284f95")
     with (
-        patch.dict(os.environ, {}, clear=False),
+        patch("swesmith.profiles.base._find_ssh_key", return_value=None),
         patch.object(repo_profile, "_is_repo_private", return_value=True),
     ):
-        os.environ.pop("GITHUB_USER_SSH_KEY", None)
         assert repo_profile._docker_ssh_arg == "--ssh default"
 
 
-def test_docker_ssh_arg_public_repo():
-    """Test _docker_ssh_arg when repo is public and no key."""
+def test_docker_ssh_arg_public_repo_no_key():
+    """Test _docker_ssh_arg when repo is public and no key found."""
     repo_profile = registry.get("mewwts__addict.75284f95")
     with (
-        patch.dict(os.environ, {}, clear=False),
+        patch("swesmith.profiles.base._find_ssh_key", return_value=None),
         patch.object(repo_profile, "_is_repo_private", return_value=False),
     ):
-        os.environ.pop("GITHUB_USER_SSH_KEY", None)
         assert repo_profile._docker_ssh_arg == ""
 
 

@@ -45,6 +45,23 @@ from unidiff import PatchSet
 
 load_dotenv()
 
+_DEFAULT_SSH_KEYS = ["id_rsa", "id_ecdsa", "id_ecdsa_sk", "id_ed25519", "id_ed25519_sk"]
+
+
+def _find_ssh_key() -> Path | None:
+    """Find an SSH private key: explicit env var first, then default paths."""
+    key_path = os.getenv("GITHUB_USER_SSH_KEY")
+    if key_path and Path(key_path).exists():
+        return Path(key_path)
+
+    ssh_dir = Path.home() / ".ssh"
+    for key_name in _DEFAULT_SSH_KEYS:
+        key_file = ssh_dir / key_name
+        if key_file.exists():
+            return key_file
+
+    return None
+
 
 class SingletonMeta(ABCMeta):
     _instances = {}
@@ -165,9 +182,9 @@ class RepoProfile(ABC, metaclass=SingletonMeta):
 
     @property
     def _docker_ssh_arg(self) -> str:
-        key_path = os.getenv("GITHUB_USER_SSH_KEY")
-        if key_path:
-            return f"--ssh default={key_path}"
+        key_file = _find_ssh_key()
+        if key_file:
+            return f"--ssh default={key_file}"
         if self._is_repo_private():
             return "--ssh default"
         return ""

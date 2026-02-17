@@ -35,25 +35,8 @@ from swesmith.constants import (
     TEST_OUTPUT_START,
 )
 from swesmith.profiles import registry
+from swesmith.profiles.base import _find_ssh_key
 from unidiff import PatchSet
-
-# man ssh_config(5)
-_DEFAULT_SSH_KEYS = ["id_rsa", "id_ecdsa", "id_ecdsa_sk", "id_ed25519", "id_ed25519_sk"]
-
-
-def _find_ssh_key() -> Path | None:
-    """Find an SSH private key: explicit env var first, then default paths."""
-    key_path = os.getenv("GITHUB_USER_SSH_KEY")
-    if key_path and Path(key_path).exists():
-        return Path(key_path)
-
-    ssh_dir = Path.home() / ".ssh"
-    for key_name in _DEFAULT_SSH_KEYS:
-        key_file = ssh_dir / key_name
-        if key_file.exists():
-            return key_file
-
-    return None
 
 
 _ssh_copy_lock = threading.Lock()

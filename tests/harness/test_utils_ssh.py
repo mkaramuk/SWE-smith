@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch, call
 
 import pytest
 
-from swesmith.harness.utils import _find_ssh_key, _DEFAULT_SSH_KEYS
+from swesmith.profiles.base import _find_ssh_key, _DEFAULT_SSH_KEYS
 
 
 class TestFindSshKey:
