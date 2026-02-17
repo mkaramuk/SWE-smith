@@ -666,7 +666,9 @@ def test_is_repo_private_network_error_raises():
     repo_profile = registry.get("mewwts__addict.75284f95")
     repo_profile._cache_repo_private = None
 
-    with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("Connection error")):
+    with patch(
+        "urllib.request.urlopen", side_effect=urllib.error.URLError("Connection error")
+    ):
         with pytest.raises(urllib.error.URLError):
             repo_profile._is_repo_private()
 

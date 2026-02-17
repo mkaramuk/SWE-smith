@@ -159,7 +159,11 @@ class RepoProfile(ABC, metaclass=SingletonMeta):
                 self._cache_repo_private = data.get("private", False)
         except urllib.error.HTTPError as e:
             if e.code == 404:
-                logger.warning("Repo '%s/%s' returned 404 — assuming private", self.owner, self.repo)
+                logger.warning(
+                    "Repo '%s/%s' returned 404 — assuming private",
+                    self.owner,
+                    self.repo,
+                )
                 self._cache_repo_private = True
             else:
                 raise
